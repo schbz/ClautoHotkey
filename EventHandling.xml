@@ -1,0 +1,174 @@
+<EventHandling>
+  <Pattern name="HotkeyHandler" description="Basic hotkey handling">
+    <Code>
+#HotIf WinActive("ahk_exe notepad.exe")
+^s:: {  ; Ctrl+S
+    try {
+        Send "^s"  ; Original save
+        MsgBox "File saved!"
+    } catch Error as e {
+        MsgBox "Save failed: " e.Message
+    }
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="WindowEvents" description="Common window message handling">
+    <Code>
+; Window position changed
+OnMessage(0x232, WM_EXITSIZEMOVE)  ; Window done moving/sizing
+WM_EXITSIZEMOVE(wParam, lParam, msg, hwnd) {
+    SaveWindowPosition(hwnd)
+}
+
+; Window state changed
+OnMessage(0x214, WM_SIZING)  ; Window is being resized
+WM_SIZING(wParam, lParam, msg, hwnd) {
+    UpdateLayout(hwnd)
+}
+
+; Window activation changed
+OnMessage(0x06, WM_ACTIVATE)  ; Window activation changed
+WM_ACTIVATE(wParam, lParam, msg, hwnd) {
+    isActive := wParam & 0xFFFF != 0
+    UpdateWindowState(hwnd, isActive)
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="GuiEvents" description="GUI control event handling">
+    <Code>
+MyGui := Gui()
+MyGui.OnEvent("Close", GuiClose)
+MyGui.OnEvent("Escape", GuiEscape)
+MyGui.OnEvent("Size", GuiResize)
+
+; Button events
+btnSubmit := MyGui.Add("Button",, "Submit")
+btnSubmit.OnEvent("Click", HandleSubmit)
+btnSubmit.OnEvent("ContextMenu", ShowButtonMenu)
+
+; Edit control events
+edit := MyGui.Add("Edit", "vUserInput")
+edit.OnEvent("Change", HandleTextChange)
+edit.OnEvent("Focus", HandleFocus)
+
+; ListView events
+lv := MyGui.Add("ListView",, ["Name", "Value"])
+lv.OnEvent("DoubleClick", HandleDoubleClick)
+lv.OnEvent("ItemSelect", HandleSelection)
+lv.OnEvent("ColClick", HandleColumnClick)
+
+HandleSubmit(*) {
+    try {
+        saved := MyGui.Submit()
+        ProcessData(saved)
+    } catch Error as e {
+        MsgBox "Error processing data: " e.Message
+    }
+}
+
+HandleTextChange(ctrl, *) {
+    UpdatePreview(ctrl.Value)
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="TimerEvents" description="Timer-based event handling">
+    <Code>
+class TimerManager {
+    static timers := Map()
+    
+    static SetTimer(callback, period) {
+        timer := ObjBindMethod(this, "TimerTick", callback)
+        SetTimer(timer, period)
+        this.timers[callback] := timer
+    }
+    
+    static TimerTick(callback, *) {
+        try {
+            callback()
+        } catch Error as e {
+            LogError("Timer error: " e.Message)
+        }
+    }
+    
+    static Clear(callback) {
+        if this.timers.Has(callback) {
+            SetTimer(this.timers[callback], 0)
+            this.timers.Delete(callback)
+        }
+    }
+}
+
+; Usage example
+AutoSave(*) {
+    SaveDocument()
+}
+TimerManager.SetTimer(AutoSave, 300000)  ; 5 minutes
+    </Code>
+  </Pattern>
+
+  <Pattern name="KeyboardEvents" description="Advanced keyboard event handling">
+    <Code>
+#HotIf
+~LButton & RButton:: {  ; Left+Right mouse button combo
+    HandleComboClick()
+}
+
+#HotIf WinActive("ahk_exe explorer.exe")
+~^c:: {  ; Intercept Ctrl+C in Explorer
+    ClipWait 1
+    ProcessCopiedFiles()
+}
+
+; Key combination with modifiers
+^!s:: {  ; Ctrl+Alt+S
+    if GetKeyState("Shift", "P")  ; Check if Shift is also pressed
+        SaveAll()
+    else
+        SaveCurrent()
+}
+
+; Long press detection
+$a:: {  ; $ prefix to allow Send "a"
+    startTime := A_TickCount
+    KeyWait "a"
+    if (A_TickCount - startTime > 500)  ; Long press: > 500ms
+        HandleLongPress()
+    else
+        Send "a"  ; Normal press
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="SystemEvents" description="System-level event handling">
+    <Code>
+; Power events
+OnMessage(0x218, WM_POWERBROADCAST)
+WM_POWERBROADCAST(wParam, lParam, msg, hwnd) {
+    switch wParam {
+        case 0x0004:  ; PBT_APMSUSPEND
+            SaveBeforeSuspend()
+        case 0x0007:  ; PBT_APMRESUMESUSPEND
+            RestoreAfterResume()
+        case 0x0012:  ; PBT_POWERSETTINGCHANGE
+            HandlePowerSettingChange(lParam)
+    }
+}
+
+; Display change events
+OnMessage(0x007E, WM_DISPLAYCHANGE)
+WM_DISPLAYCHANGE(wParam, lParam, msg, hwnd) {
+    UpdateLayoutForNewResolution(wParam & 0xFFFF, (wParam >> 16) & 0xFFFF)
+}
+
+; System session events
+OnMessage(0x0219, WM_DEVICECHANGE)
+WM_DEVICECHANGE(wParam, lParam, msg, hwnd) {
+    if (wParam = 0x8000)  ; DBT_DEVICEARRIVAL
+        HandleNewDevice(lParam)
+}
+    </Code>
+  </Pattern>
+</EventHandling>

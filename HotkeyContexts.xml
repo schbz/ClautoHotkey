@@ -1,0 +1,52 @@
+<HotkeyContexts>
+  <Context name="ActiveWindow" description="Matches when specified window is active">
+    <Example>#HotIf WinActive("ahk_exe notepad.exe")</Example>
+    <Example>#HotIf WinActive("ahk_class Notepad")</Example>
+    <Example>#HotIf WinActive("ahk_id " . windowId)</Example>
+  </Context>
+  <Context name="WindowExists" description="Matches when specified window exists">
+    <Example>#HotIf WinExist("Untitled - Notepad")</Example>
+    <Example>#HotIf WinExist("ahk_group BrowserGroup")</Example>
+  </Context>
+  <Context name="ProcessExists" description="Matches when specified process is running">
+    <Example>#HotIf ProcessExist("chrome.exe")</Example>
+    <Example>#HotIf ProcessExist("firefox.exe") || ProcessExist("chrome.exe")</Example>
+  </Context>
+  <Context name="CustomFunction" description="Uses return value of a function">
+    <Example>#HotIf IsWindowFullScreen()</Example>
+    <Example>#HotIf IsMouseOverTaskbar()</Example>
+    <ExampleFunction>
+      IsWindowFullScreen() {
+          activeWin := WinGetID("A")
+          style := WinGetStyle(activeWin)
+          return !(style & 0xC40000) ; WS_CAPTION | WS_THICKFRAME
+      }
+    </ExampleFunction>
+    <ExampleFunction>
+    IsWindowMaximized() {
+        return WinGetMinMax("A") = 1
+    }
+    </ExampleFunction>
+  </Context>
+  <Context name="MultipleConditions" description="Combines multiple conditions">
+    <Example>#HotIf WinActive("ahk_exe chrome.exe") and IsWindowMaximized()</Example>
+    <Example>#HotIf WinActive("ahk_class CabinetWClass") and !IsWindowFullScreen()</Example>
+  </Context>
+  <Context name="ApplicationSpecific" description="Common application-specific contexts">
+    <Browser>
+      <Example>#HotIf WinActive("ahk_class Chrome_WidgetWin_1")</Example>
+      <Example>#HotIf WinActive("ahk_class MozillaWindowClass")</Example>
+    </Browser>
+    <TextEditors>
+      <Example>#HotIf WinActive("ahk_class Notepad") or WinActive("ahk_exe Code.exe")</Example>
+    </TextEditors>
+    <Games>
+      <Example>#HotIf WinActive("ahk_exe steam.exe")</Example>
+    </Games>
+  </Context>
+  <Context name="StateConditions" description="System and application states">
+    <Example>#HotIf GetKeyState("CapsLock", "T")</Example>
+    <Example>#HotIf A_TimeIdle > 300000  ; 5 minutes</Example>
+    <Example>#HotIf A_ScreenDPI != 96</Example>
+  </Context>
+</HotkeyContexts>

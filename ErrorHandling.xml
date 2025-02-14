@@ -1,0 +1,140 @@
+<ErrorHandling>
+  <Pattern name="BasicTryCatch" description="Basic error handling">
+    <Code>
+try {
+    riskyOperation()
+} catch Error as e {
+    MsgBox "Error: " e.Message "`nFile: " e.File "`nLine: " e.Line
+    ExitApp
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="FileOperations" description="File operation error handling">
+    <Code>
+try {
+    if !FileExist(filename)
+        throw ValueError("File not found: " filename)
+    content := FileRead(filename)
+} catch Error as e {
+    LogError(e)
+    return false
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="CustomErrors" description="Creating and handling custom errors">
+    <Code>
+class ConfigError extends Error {
+    __New(message, configFile := "") {
+        super.__New(message)
+        this.ConfigFile := configFile
+    }
+}
+
+LoadConfig(filename) {
+    try {
+        if !FileExist(filename)
+            throw ConfigError("Config file not found", filename)
+        
+        config := FileRead(filename)
+        if !IsValidConfig(config)
+            throw ConfigError("Invalid config format", filename)
+            
+        return ParseConfig(config)
+    } catch ConfigError as e {
+        MsgBox "Configuration Error:`n" e.Message "`nFile: " e.ConfigFile
+        return false
+    } catch Error as e {
+        MsgBox "Unexpected Error:`n" e.Message
+        return false
+    }
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="NetworkOperations" description="Network-related error handling">
+    <Code>
+DownloadFile(url, destination) {
+    try {
+        Download(url, destination)
+    } catch OSError as e {
+        if e.Number = 2  ; ERROR_FILE_NOT_FOUND
+            MsgBox "The specified URL could not be reached."
+        else if e.Number = 5  ; ERROR_ACCESS_DENIED
+            MsgBox "Access denied. Check your permissions."
+        else
+            MsgBox "Network error: " e.Message
+        return false
+    } catch Error as e {
+        MsgBox "Unexpected error: " e.Message
+        return false
+    }
+    return true
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="ErrorLogging" description="Error logging system">
+    <Code>
+class ErrorLogger {
+    static LogFile := A_ScriptDir "\error.log"
+    
+    static Log(error, context := "") {
+        try {
+            FileAppend(
+                FormatTime() " - Error: " error.Message
+                . "`nType: " Type(error)
+                . "`nFile: " error.File
+                . "`nLine: " error.Line
+                . (context ? "`nContext: " context : "")
+                . "`n`n",
+                ErrorLogger.LogFile
+            )
+        } catch Error as e {
+            MsgBox "Failed to log error: " e.Message
+        }
+    }
+    
+    static Clear() {
+        try {
+            FileDelete(ErrorLogger.LogFile)
+        }
+    }
+
+    static FormatTimestamp() {
+        return FormatTime(, "yyyy-MM-dd HH:mm:ss")
+    }
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="GuiErrorHandling" description="GUI-related error handling">
+    <Code>
+class GuiError extends Error {
+    __New(message, control := "") {
+        super.__New(message)
+        this.Control := control
+    }
+}
+
+SaveGuiData(gui) {
+    try {
+        data := gui.Submit(false)
+        
+        if data.HasProp("Username") && data.Username = ""
+            throw GuiError("Username cannot be empty", "Username")
+            
+        if data.HasProp("Email") && !IsValidEmail(data.Email)
+            throw GuiError("Invalid email format", "Email")
+            
+        return data
+    } catch GuiError as e {
+        gui[e.Control].Focus()
+        MsgBox "Input Error: " e.Message
+        return false
+    }
+}
+    </Code>
+  </Pattern>
+</ErrorHandling>

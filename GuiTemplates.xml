@@ -1,0 +1,136 @@
+<GuiTemplates>
+  <Template name="BasicWindow" description="Simple input form">
+    <Code>
+MyGui := Gui("+Resize +MinSize300x200")  ; Resizable with minimum size
+MyGui.OnEvent("Size", GuiResize)
+MyGui.SetFont("s10", "Segoe UI")  ; Modern font
+
+; Add controls
+MyGui.Add("Text",, "Enter name:")
+MyGui.Add("Edit", "vUserInput w200")
+MyGui.Add("Button", "default w100", "OK").OnEvent("Click", Submit)
+MyGui.Add("StatusBar",, "Ready")
+
+; Center on screen
+MyGui.Show("Center")
+
+Submit(*) {
+    saved := MyGui.Submit()
+    MsgBox "You entered " saved.UserInput
+}
+
+GuiResize(thisGui, MinMax, Width, Height) {
+    if (MinMax = -1)  ; The window has been minimized
+        return
+    
+    ; Add control resizing logic:
+    thisGui["UserInput"].Move(,, Width - 100)  ; Adjust edit width
+    thisGui["Button"].Move(,, 100)  ; Keep button width fixed
+}
+    </Code>
+  </Template>
+
+  <Template name="AdvancedWindow" description="Complex GUI with multiple controls">
+    <Code>
+MainGui := Gui("+Resize +MinSize400x300")
+MainGui.Title := "Advanced Application"
+
+; Menu
+MainMenu := MenuBar()
+FileMenu := Menu()
+FileMenu.Add("&Open`tCtrl+O", (*) => FileOpen())
+FileMenu.Add("&Save`tCtrl+S", (*) => FileSave())
+FileMenu.Add()  ; Separator
+FileMenu.Add("E&xit", (*) => ExitApp())
+MainMenu.Add("&File", FileMenu)
+MainGui.MenuBar := MainMenu
+
+; Toolbar
+MainGui.Add("Button", "x5 y5 w80", "New").OnEvent("Click", NewFile)
+MainGui.Add("Button", "x+5 w80", "Open").OnEvent("Click", OpenFile)
+MainGui.Add("Button", "x+5 w80", "Save").OnEvent("Click", SaveFile)
+
+; Main content
+MainGui.Add("Tab3", "x5 y+10 w390 h260", ["General", "Settings", "About"])
+
+; Tab 1 - General
+MainGui.Add("ListView", "x10 y+10 w380 h200", ["Name", "Value", "Status"])
+
+; Tab 2 - Settings
+MainGui.Tab(2)
+MainGui.Add("Checkbox", "x15 y+10 vAutoSave", "Auto-save")
+MainGui.Add("Text",, "Save interval:")
+MainGui.Add("Edit", "x+5 w50 vSaveInterval Number", "5")
+MainGui.Add("UpDown", "Range1-60", 5)
+
+; Tab 3 - About
+MainGui.Tab(3)
+MainGui.Add("Link",, "Created with <a href=`"https://autohotkey.com`">AutoHotkey v2</a>")
+
+; Status Bar
+MainGui.Add("StatusBar",, "Ready")
+
+MainGui.Show("Center")
+
+FileOpen(*) {
+    ; Add implementation
+}
+
+FileSave(*) {
+    ; Add implementation
+}
+    </Code>
+  </Template>
+
+  <Template name="SystemTray" description="Advanced system tray with menu">
+    <Code>
+; Set custom icon
+myIcon := A_ScriptDir "\app.ico"
+TraySetIcon(myIcon)
+A_IconTip := "My Application v1.0"
+
+; Create custom tray menu
+A_TrayMenu.Delete  ; Clear default menu
+A_TrayMenu.Add("&Show Window", ShowMainWindow)
+A_TrayMenu.Add("&Settings", ShowSettings)
+A_TrayMenu.Add()  ; Separator
+A_TrayMenu.Add("Check for &Updates", CheckUpdates)
+A_TrayMenu.Add("&About", ShowAbout)
+A_TrayMenu.Add()  ; Separator
+A_TrayMenu.Add("E&xit", (*) => ExitApp())
+
+; Double-click action
+A_TrayMenu.ClickCount := 2
+A_TrayMenu.OnEvent("Click", ShowMainWindow)
+
+ShowMainWindow(*) {
+    if WinExist("ahk_id " . MainGui.Hwnd)
+        WinActivate
+    else
+        MainGui.Show()
+}
+    </Code>
+  </Template>
+
+  <Template name="ListViewExample" description="ListView with sorting and events">
+    <Code>
+LV := MainGui.Add("ListView", "r10 w400", ["Name", "Date", "Size"])
+LV.OnEvent("DoubleClick", LV_DoubleClick)
+LV.OnEvent("ItemSelect", LV_ItemSelect)
+
+; Enable sorting
+LV.ModifyCol(1, "Sort")  ; Sort by name
+LV.ModifyCol(2, "SortDesc")  ; Sort by date descending
+LV.ModifyCol(3, "Integer")  ; Sort numerically
+
+; Add items
+LV.Add(, "File1.txt", "2023-01-01", "1024")
+LV.Add(, "File2.txt", "2023-01-02", "2048")
+
+LV_DoubleClick(LV, RowNumber) {
+    SelectedRow := LV.GetText(RowNumber)
+    MsgBox "Opening: " SelectedRow
+}
+    </Code>
+  </Template>
+</GuiTemplates>

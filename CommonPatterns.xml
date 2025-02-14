@@ -1,0 +1,241 @@
+<CommonPatterns>
+  <Pattern name="ScriptSetup" description="Basic script initialization">
+    <Code>
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+#Warn All, StdOut  ; Enable warnings
+SetWorkingDir A_ScriptDir  ; Ensures a consistent starting directory
+ProcessSetPriority "High"
+    </Code>
+  </Pattern>
+
+  <Pattern name="AdminRights" description="Request admin privileges">
+    <Code>
+if !A_IsAdmin {
+    try {
+        if A_IsCompiled
+            Run '*RunAs "' A_ScriptFullPath '" /restart'
+        else
+            Run '*RunAs "' A_AhkPath '" /restart "' A_ScriptFullPath '"'
+    }
+    ExitApp
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="TrayMenu" description="Advanced tray menu setup">
+    <Code>
+; Set custom icon and tooltip
+if FileExist(A_ScriptDir "\app.ico")
+    TraySetIcon A_ScriptDir "\app.ico"
+A_IconTip := "Application Name v1.0"
+
+; Create custom tray menu
+A_TrayMenu.Delete  ; Clear default menu
+A_TrayMenu.Add "Show Window", ShowMainWindow
+A_TrayMenu.Add "Settings", ShowSettings
+A_TrayMenu.Add  ; Separator
+A_TrayMenu.Add "Check for Updates", CheckUpdates
+A_TrayMenu.Add "Help", OpenHelp
+A_TrayMenu.Add "About", ShowAbout
+A_TrayMenu.Add  ; Separator
+A_TrayMenu.Add "Exit", (*) => ExitApp()
+
+; Set default and double-click actions
+A_TrayMenu.Default := "Show Window"
+A_TrayMenu.ClickCount := 2
+    </Code>
+  </Pattern>
+
+  <Pattern name="ConfigManagement" description="Configuration file handling">
+    <Code>
+class Config {
+    static filename := A_ScriptDir "\config.ini"
+    static defaults := Map(
+        "General", Map(
+            "AutoStart", "1",
+            "CheckUpdates", "1"
+        ),
+        "Display", Map(
+            "Theme", "Light",
+            "FontSize", "10"
+        )
+    )
+
+    static Load() {
+        if !FileExist(this.filename)
+            this.SaveDefaults()
+        
+        config := Map()
+        try {
+            for section, values in this.defaults {
+                config[section] := Map()
+                for key, default in values {
+                    config[section][key] := IniRead(this.filename, section, key, default)
+                }
+            }
+            return config
+        } catch Error as e {
+            MsgBox "Error loading config: " e.Message
+            return this.defaults
+        }
+    }
+
+    static Save(config) {
+        try {
+            for section, values in config {
+                for key, value in values {
+                    IniWrite value, this.filename, section, key
+                }
+            }
+            return true
+        } catch Error as e {
+            MsgBox "Error saving config: " e.Message
+            return false
+        }
+    }
+
+    static SaveDefaults() {
+        return this.Save(this.defaults)
+    }
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="AutoUpdate" description="Automatic update checking">
+    <Code>
+class AutoUpdater {
+    static currentVersion := "1.0.0"
+    static updateUrl := "https://api.example.com/version"
+    static downloadUrl := "https://example.com/download"
+
+    static CheckForUpdates(silent := false) {
+        try {
+            ; Download version info
+            req := ComObject("WinHttp.WinHttpRequest.5.1")
+            req.Open("GET", this.updateUrl, true)
+            req.SetTimeouts(0, 30000, 30000, 30000)  ; Add timeout
+            req.Send()
+            req.WaitForResponse()
+            
+            if (req.Status != 200)
+                throw Error("Server returned status " req.Status)
+            
+            ; Parse version info
+            versionInfo := Jxon_Load(req.ResponseText)
+            
+            if (this.CompareVersions(versionInfo.version, this.currentVersion) > 0) {
+                if !silent {
+                    result := MsgBox(
+                        "A new version is available!`n`n"
+                        "Current version: " this.currentVersion "`n"
+                        "New version: " versionInfo.version "`n`n"
+                        "Would you like to update now?",
+                        "Update Available",
+                        0x4
+                    )
+                    if (result = "Yes")
+                        this.PerformUpdate(versionInfo)
+                }
+                return true
+            }
+            return false
+        } catch Error as e {
+            if !silent
+                MsgBox "Update check failed: " e.Message
+            return false
+        }
+    }
+
+    static CompareVersions(v1, v2) {
+        v1parts := StrSplit(v1, ".")
+        v2parts := StrSplit(v2, ".")
+        
+        Loop Min(v1parts.Length, v2parts.Length) {
+            if (v1parts[A_Index] > v2parts[A_Index])
+                return 1
+            if (v1parts[A_Index] < v2parts[A_Index])
+                return -1
+        }
+        return v1parts.Length - v2parts.Length
+    }
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="Logging" description="Application logging system">
+    <Code>
+class Logger {
+    static logFile := A_ScriptDir "\app.log"
+    static maxSize := 1048576  ; 1MB
+    static levels := Map(
+        "DEBUG", 1,
+        "INFO", 2,
+        "WARN", 3,
+        "ERROR", 4
+    )
+    static currentLevel := 2  ; INFO
+
+    static Log(level, message) {
+        if this.levels[level] < this.currentLevel
+            return
+
+        try {
+            ; Rotate log if too large
+            if FileExist(this.logFile) {
+                if (FileGetSize(this.logFile) > this.maxSize) {
+                    if FileExist(this.logFile ".old")
+                        FileDelete this.logFile ".old"
+                    FileMove this.logFile, this.logFile ".old"
+                }
+            }
+
+            timestamp := FormatTime(, "yyyy-MM-dd HH:mm:ss")
+            logEntry := timestamp " [" level "] " message "`n"
+            FileAppend logEntry, this.logFile
+        }
+    }
+
+    static Debug(message) => this.Log("DEBUG", message)
+    static Info(message) => this.Log("INFO", message)
+    static Warn(message) => this.Log("WARN", message)
+    static Error(message) => this.Log("ERROR", message)
+}
+    </Code>
+  </Pattern>
+
+  <Pattern name="Hotstring" description="Advanced hotstring handling">
+    <Code>
+#Hotstring EndChars `t
+#Hotstring O  ; Omit ending character
+
+::btw::by the way
+::afaik::as far as I know
+
+; Date/time insertion
+:*:dts::  ; Current date and time stamp
+{
+    SendText FormatTime(, "yyyy-MM-dd HH:mm:ss")
+}
+
+; Case-sensitive email expansion
+:C:em::
+{
+    SendText "user@example.com"
+}
+
+; Execute function on trigger
+:X:calc::
+{
+    result := InputBox("Enter calculation:", "Calculator")
+    if !result.Result
+        return
+    try {
+        SendText Eval(result.Value)
+    } catch Error as e {
+        MsgBox "Invalid calculation: " e.Message
+    }
+}
+    </Code>
+  </Pattern>
+</CommonPatterns>
